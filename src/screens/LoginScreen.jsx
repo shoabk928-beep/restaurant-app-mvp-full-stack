@@ -1,140 +1,140 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
-import { useForm } from '../hooks/useForm';
-import { mockUsers } from '../data/users';
-import { Input } from '../components/Input';
-import { Button } from '../components/Button';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { apiClient } from '../api/client';
 
 export const LoginScreen = ({ navigation }) => {
-  const { theme } = useTheme();
-  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const validate = (values) => {
-    const errors = {};
-    if (!values.email) {
-      errors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(values.email)) {
-      errors.email = 'Invalid email address';
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please enter email and password');
+      return;
     }
-    if (!values.password) {
-      errors.password = 'Password is required';
-    } else if (values.password.length < 6) {
-      errors.password = 'Password must be at least 6 characters';
-    }
-    return errors;
-  };
 
-  const { values, errors, handleChange, handleSubmit } = useForm(
-    { email: '', password: '' },
-    validate
-  );
+    try {
+      setLoading(true);
+      const data = await apiClient('/auth/login', 'POST', { email, password });
 
-  const handleLogin = (formValues) => {
-    const foundUser = mockUsers.find(
-      (u) =>
-        u.email.toLowerCase() === formValues.email.toLowerCase() &&
-        u.password === formValues.password
-    );
+      // Save Token & User Details locally
+      await AsyncStorage.setItem('userToken', data.token);
+      await AsyncStorage.setItem('userData', JSON.stringify(data.user));
 
-    if (foundUser) {
-      login(foundUser);
-    } else {
-      Alert.alert('Login Failed', 'Invalid email or password.');
+      Alert.alert('Success', 'Login Successful!');
+      navigation.replace('Home');
+    } catch (error) {
+      Alert.alert('Login Failed', error.message || 'Invalid Credentials');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.container,
-        { backgroundColor: theme.background },
-      ]}
-    >
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.primary }]}>
-          Restaurant MVP
-        </Text>
-        <Text style={[styles.subtitle, { color: theme.subText }]}>
-          Sign in to continue
-        </Text>
-      </View>
+    <View style={styles.container}>
+      <Text style={styles.title}>Welcome Back</Text>
+      <Text style={styles.subtitle}>Sign in to continue</Text>
 
-      <View style={styles.form}>
-        <Input
-          label="Email Address"
-          placeholder="e.g. customer@example.com"
-          value={values.email}
-          onChangeText={(text) => handleChange('email', text)}
-          error={errors.email}
-          keyboardType="email-address"
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="Email Address"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
 
-        <Input
-          label="Password"
-          placeholder="Enter password"
-          value={values.password}
-          onChangeText={(text) => handleChange('password', text)}
-          error={errors.password}
-          secureTextEntry
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
 
-        <Button
-          title="Sign In"
-          onPress={() => handleSubmit(handleLogin)}
-          style={{ marginTop: 10 }}
-        />
-      </View>
+      {/* Login Button */}
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFF" />
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
+      </TouchableOpacity>
 
-      <View style={styles.hintBox}>
-        <Text style={[styles.hintTitle, { color: theme.text }]}>
-          Demo Credentials:
+      {/* Sign Up Navigation Link */}
+      <TouchableOpacity
+        onPress={() => navigation.navigate('SignUp')}
+        style={styles.signUpLink}
+      >
+        <Text style={styles.signUpText}>
+          Don't have an account? Sign Up
         </Text>
-        <Text style={[styles.hintText, { color: theme.subText }]}>
-          Customer: customer@example.com / password123
-        </Text>
-        <Text style={[styles.hintText, { color: theme.subText }]}>
-          Manager: manager@example.com / password123
-        </Text>
-      </View>
-    </ScrollView>
+      </TouchableOpacity>
+    </View>
   );
 };
 
+export default LoginScreen;
+
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
+    flex: 1,
     justifyContent: 'center',
     padding: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 30,
+    backgroundColor: '#F8F9FA',
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
+    color: '#212529',
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    marginTop: 6,
+    color: '#6C757D',
+    marginBottom: 24,
   },
-  form: {
-    width: '100%',
-  },
-  hintBox: {
-    marginTop: 30,
-    padding: 12,
+  input: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CED4DA',
     borderRadius: 8,
-    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
   },
-  hintTitle: {
+  button: {
+    backgroundColor: '#E63946',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
   },
-  hintText: {
-    fontSize: 12,
-    marginTop: 2,
+  signUpLink: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  signUpText: {
+    color: '#E63946',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

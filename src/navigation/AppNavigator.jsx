@@ -1,55 +1,50 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 
-import { LoginScreen } from '../screens/LoginScreen';
-import { TabNavigator } from './TabNavigator';
-import { ItemDetailScreen } from '../screens/ItemDetailScreen';
-import { CheckoutScreen } from '../screens/CheckoutScreen';
+import CartScreen from '../screens/CartScreen';
+import HomeScreen from '../screens/HomeScreen';
+import LoginScreen from '../screens/LoginScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import ReservationScreen from '../screens/ReservationScreen';
+import SignUpScreen from '../screens/SignUpScreen';
 
 const Stack = createNativeStackNavigator();
 
-export const AppNavigator = () => {
-  const { user } = useAuth();
-  const { theme } = useTheme();
-
+export default function AppNavigator() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: theme.cardBackground },
-          headerTintColor: theme.text,
-          contentStyle: { backgroundColor: theme.background },
-        }}
-      >
-        {!user ? (
-          <Stack.Screen
-            name="Login"
-            component={LoginScreen}
-            options={{ headerShown: false }}
-          />
-        ) : (
-          <>
-            <Stack.Screen
-              name="MainTabs"
-              component={TabNavigator}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="ItemDetail"
-              component={ItemDetailScreen}
-              options={{ title: 'Dish Details' }}
-            />
-            <Stack.Screen
-              name="Checkout"
-              component={CheckoutScreen}
-              options={{ title: 'Checkout' }}
-            />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator initialRouteName="Login">
+      {/* Auth Screens */}
+      <Stack.Screen 
+        name="Login" 
+        component={LoginScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="SignUp" 
+        component={SignUpScreen} 
+        options={{ title: 'Create Account' }} 
+      />
+
+      {/* Main Screens */}
+      <Stack.Screen 
+        name="Home" 
+        component={HomeScreen} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="Cart" 
+        component={CartScreen} 
+        options={{ title: 'My Cart' }} 
+      />
+      <Stack.Screen 
+        name="Reservation" 
+        component={ReservationScreen} 
+        options={{ title: 'Book Table' }} 
+      />
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileScreen} 
+        options={{ title: 'User Profile' }} 
+      />
+    </Stack.Navigator>
   );
-};
+}

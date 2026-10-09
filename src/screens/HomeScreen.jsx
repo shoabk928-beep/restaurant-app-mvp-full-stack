@@ -1,165 +1,288 @@
-import React, { useState, useMemo } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
   FlatList,
+  Image,
+  Platform,
+  SafeAreaView,
+  StatusBar,
   StyleSheet,
+  Text,
+  TextInput,
   TouchableOpacity,
-  ScrollView,
+  View
 } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
-import { mockMenu, CATEGORIES } from '../data/menu';
-import { useDebounce } from '../hooks/useDebounce';
-import { MenuItemCard } from '../components/MenuItemCard';
-import { Input } from '../components/Input';
+import { CartContext } from '../context/CartContext';
 
-export const HomeScreen = ({ navigation }) => {
-  const { theme } = useTheme();
-  const { addItem } = useCart();
-
-  const [searchQuery, setSearchQuery] = useState('');
+export default function HomeScreen({ navigation }) {
+  const [items, setItems] = useState([]);
+  const [filteredItems, setFilteredItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const debouncedSearch = useDebounce(searchQuery, 300);
+  const { cart, addItem } = useContext(CartContext);
+  const totalCartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
-  const filteredMenu = useMemo(() => {
-    return mockMenu.filter((item) => {
-      const matchesCategory =
-        selectedCategory === 'All' || item.category === selectedCategory;
+  const categories = ['All', 'Burgers', 'Pizza', 'Drinks', 'Desserts'];
 
-      const matchesSearch =
-        item.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        item.description.toLowerCase().includes(debouncedSearch.toLowerCase());
-
-      return matchesCategory && matchesSearch;
-    });
-  }, [selectedCategory, debouncedSearch]);
-
-  const dailySpecials = useMemo(() => {
-    return mockMenu.filter((item) => item.isSpecial);
+  useEffect(() => {
+    fetchItems();
   }, []);
 
-  return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <Input
-          placeholder="Search dishes or ingredients..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          style={{ marginBottom: 0 }}
-        />
-      </View>
+  const fetchItems = async () => {
+    try {
+      const response = await fetch('http://192.168.0.138:5000/api/menu');
+      const data = await response.json();
+      setItems(data);
+      setFilteredItems(data);
+    } catch (error) {
+      console.error('Error fetching menu:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      {/* Category Selector */}
-      <View style={styles.categoriesWrapper}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {CATEGORIES.map((cat) => {
-            const isSelected = selectedCategory === cat;
-            return (
+  const handleSearch = (text) => {
+    setSearch(text);
+    filterData(text, selectedCategory);
+  };
+
+  const handleCategorySelect = (category) => {
+    setSelectedCategory(category);
+    filterData(search, category);
+  };
+
+  const filterData = (searchText, category) => {
+    let result = items;
+    if (category !== 'All') {
+      result = result.filter(item => item.category?.toLowerCase() === category.toLowerCase());
+    }
+    if (searchText) {
+      result = result.filter(item => item.name.toLowerCase().includes(searchText.toLowerCase()));
+    }
+    setFilteredItems(result);
+  };
+
+  return (
+    <SafeAreaView style={styles.safeContainer}>
+      <View style={styles.container}>
+        
+        {/* Top Header Navigation */}
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            style={styles.navBtn} 
+            onPress={() => navigation.navigate('Reservation')}
+          >
+            <Text style={styles.navBtnText}>Reserve Table</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.navBtn} 
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <Text style={styles.navBtnText}>Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.navBtn, styles.cartBtn]} 
+            onPress={() => navigation.navigate('Cart')}
+          >
+            <Text style={styles.cartBtnText}>Cart ({totalCartCount})</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Title */}
+        <Text style={styles.title}>Menu</Text>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search food items..."
+            value={search}
+            onChangeText={handleSearch}
+          />
+        </View>
+
+        {/* Categories Bar */}
+        <View style={styles.categoriesContainer}>
+          <FlatList
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            data={categories}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
               <TouchableOpacity
-                key={cat}
-                onPress={() => setSelectedCategory(cat)}
                 style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor: isSelected
-                      ? theme.primary
-                      : theme.cardBackground,
-                    borderColor: isSelected ? theme.primary : theme.border,
-                  },
+                  styles.categoryBadge,
+                  selectedCategory === item && styles.activeCategoryBadge
                 ]}
+                onPress={() => handleCategorySelect(item)}
               >
                 <Text
                   style={[
                     styles.categoryText,
-                    { color: isSelected ? '#FFFFFF' : theme.text },
+                    selectedCategory === item && styles.activeCategoryText
                   ]}
                 >
-                  {cat}
+                  {item}
                 </Text>
               </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+            )}
+          />
+        </View>
 
-      {/* Menu List */}
-      <FlatList
-        data={filteredMenu}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <MenuItemCard
-            item={item}
-            onAddToCart={(selectedItem) => addItem(selectedItem)}
-            onPress={() =>
-              navigation.navigate('ItemDetail', { menuItem: item })
-            }
+        {/* Food List */}
+        {loading ? (
+          <ActivityIndicator size="large" color="#e63946" style={{ marginTop: 20 }} />
+        ) : (
+          <FlatList
+            data={filteredItems}
+            keyExtractor={(item) => item._id || item.id}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <View style={styles.foodCard}>
+                <Image source={{ uri: item.image }} style={styles.foodImage} />
+                <View style={styles.foodInfo}>
+                  <Text style={styles.foodName}>{item.name}</Text>
+                  <Text style={styles.foodPrice}>${item.price}</Text>
+                  <TouchableOpacity 
+                    style={styles.addBtn}
+                    onPress={() => addItem(item)}
+                  >
+                    <Text style={styles.addBtnText}>Add to Cart</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
           />
         )}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={
-          dailySpecials.length > 0 && selectedCategory === 'All' && !debouncedSearch ? (
-            <View style={styles.specialsSection}>
-              <Text style={[styles.sectionTitle, { color: theme.text }]}>
-                Today's Specials 🔥
-              </Text>
-            </View>
-          ) : null
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.subText }]}>
-              No items found matching your criteria.
-            </Text>
-          </View>
-        }
-      />
-    </View>
+
+      </View>
+    </SafeAreaView>
   );
-};
+}
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 0
+  },
   container: {
     flex: 1,
+    paddingHorizontal: 16
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+    marginTop: 5
+  },
+  navBtn: {
+    backgroundColor: '#f1f3f5',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20
+  },
+  navBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333'
+  },
+  cartBtn: {
+    backgroundColor: '#e63946'
+  },
+  cartBtnText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#fff'
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginVertical: 10,
+    color: '#000'
   },
   searchContainer: {
-    padding: 16,
-    paddingBottom: 8,
+    marginBottom: 12
   },
-  categoriesWrapper: {
-    paddingHorizontal: 16,
-    marginBottom: 12,
+  searchInput: {
+    backgroundColor: '#f1f3f5',
+    padding: 12,
+    borderRadius: 10,
+    fontSize: 15
   },
-  categoryChip: {
+  categoriesContainer: {
+    marginBottom: 15,
+    height: 40
+  },
+  categoryBadge: {
+    backgroundColor: '#f1f3f5',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    marginRight: 8,
+    marginRight: 10,
+    justifyContent: 'center'
+  },
+  activeCategoryBadge: {
+    backgroundColor: '#e63946'
   },
   categoryText: {
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#333',
+    fontWeight: '500'
   },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+  activeCategoryText: {
+    color: '#fff',
+    fontWeight: 'bold'
   },
-  specialsSection: {
-    marginBottom: 12,
+  foodCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2
   },
-  sectionTitle: {
-    fontSize: 18,
+  foodImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 10
+  },
+  foodInfo: {
+    flex: 1,
+    marginLeft: 14,
+    justifyContent: 'center'
+  },
+  foodName: {
+    fontSize: 17,
     fontWeight: 'bold',
-    marginBottom: 8,
+    color: '#222'
   },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
+  foodPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#e63946',
+    marginVertical: 4
   },
-  emptyText: {
-    fontSize: 14,
+  addBtn: {
+    backgroundColor: '#e63946',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+    alignSelf: 'flex-start'
   },
+  addBtnText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 13
+  }
 });

@@ -1,9 +1,9 @@
-import React from 'react';
 import { StatusBar } from 'react-native';
-import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { AuthProvider } from '../context/AuthContext';
 import { CartProvider } from '../context/CartContext';
-import { AppNavigator } from '../navigation/AppNavigator';
+import { ThemeProvider, useTheme } from '../context/ThemeContext';
+import AppNavigator from '../navigation/AppNavigator';
+
 
 const MainApp = () => {
   const { isDarkMode } = useTheme();

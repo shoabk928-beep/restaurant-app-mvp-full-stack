@@ -1,186 +1,75 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  StyleSheet,
-  Alert,
-} from 'react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
-import { CartItemCard } from '../components/CartItemCard';
-import { Button } from '../components/Button';
-import { Input } from '../components/Input';
+import { useContext } from 'react';
+import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { CartContext } from '../context/CartContext';
 
-export const CartScreen = ({ navigation }) => {
-  const { theme } = useTheme();
-  const {
-    cart,
-    increment,
-    decrement,
-    removeItem,
-    updateNote,
-    applyPromo,
-    removePromo,
-  } = useCart();
+const CartScreen = ({ navigation }) => {
+  const { cart, removeItem, increment, decrement, clearCart } = useContext(CartContext);
+  const items = cart?.items || [];
 
-  const [promoInput, setPromoInput] = useState('');
-
-  const subtotal = cart.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-  const discountAmount = (subtotal * cart.discountPercent) / 100;
-  const grandTotal = Math.max(0, subtotal - discountAmount);
-
-  const handleApplyPromo = () => {
-    if (!promoInput.trim()) return;
-    applyPromo(promoInput.trim());
+  const calculateTotal = () => {
+    return items.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background }]}>
-      <FlatList
-        data={cart.items}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <CartItemCard
-            item={item}
-            onIncrement={increment}
-            onDecrement={decrement}
-            onRemove={removeItem}
-            onUpdateNote={updateNote}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.subText }]}>
-              Your cart is empty.
-            </Text>
-          </View>
-        }
-      />
-
-      {cart.items.length > 0 && (
-        <View
-          style={[
-            styles.summaryCard,
-            { backgroundColor: theme.cardBackground, borderColor: theme.border },
-          ]}
-        >
-          {/* Promo Code Section */}
-          <View style={styles.promoRow}>
-            <Input
-              placeholder="Promo Code (e.g. WELCOME10)"
-              value={promoInput}
-              onChangeText={setPromoInput}
-              style={{ flex: 1, marginBottom: 0, marginRight: 8 }}
-            />
-            {cart.promoCode ? (
-              <Button
-                title="Remove"
-                variant="outline"
-                size="small"
-                onPress={() => {
-                  removePromo();
-                  setPromoInput('');
-                }}
-              />
-            ) : (
-              <Button title="Apply" size="small" onPress={handleApplyPromo} />
-            )}
-          </View>
-
-          {cart.promoCode && (
-            <Text style={[styles.promoSuccess, { color: theme.success }]}>
-              Promo '{cart.promoCode}' applied ({cart.discountPercent}% off)
-            </Text>
-          )}
-
-          <View style={styles.divider} />
-
-          {/* Pricing Breakdown */}
-          <View style={styles.priceRow}>
-            <Text style={{ color: theme.subText }}>Subtotal</Text>
-            <Text style={{ color: theme.text, fontWeight: 'bold' }}>
-              ${subtotal.toFixed(2)}
-            </Text>
-          </View>
-
-          {cart.discountPercent > 0 && (
-            <View style={styles.priceRow}>
-              <Text style={{ color: theme.success }}>
-                Discount ({cart.discountPercent}%)
-              </Text>
-              <Text style={{ color: theme.success, fontWeight: 'bold' }}>
-                -${discountAmount.toFixed(2)}
-              </Text>
-            </View>
-          )}
-
-          <View style={[styles.priceRow, { marginTop: 8 }]}>
-            <Text style={[styles.totalLabel, { color: theme.text }]}>Total</Text>
-            <Text style={[styles.totalPrice, { color: theme.primary }]}>
-              ${grandTotal.toFixed(2)}
-            </Text>
-          </View>
-
-          <Button
-            title="Proceed to Checkout"
-            onPress={() => navigation.navigate('Checkout')}
-            style={{ marginTop: 16 }}
-          />
+    <View style={styles.container}>
+      {items.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Your Cart is Empty</Text>
         </View>
+      ) : (
+        <>
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item._id || item.id}
+            renderItem={({ item }) => (
+              <View style={styles.cartCard}>
+                <View style={styles.details}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.price}>${item.price}</Text>
+                </View>
+                <View style={styles.qtyContainer}>
+                  <TouchableOpacity onPress={() => decrement(item.id || item._id)} style={styles.qtyBtn}>
+                    <Text style={styles.qtyBtnText}>-</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.quantity}</Text>
+                  <TouchableOpacity onPress={() => increment(item.id || item._id)} style={styles.qtyBtn}>
+                    <Text style={styles.qtyBtnText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          />
+          <View style={styles.footer}>
+            <Text style={styles.totalText}>Total: ${calculateTotal()}</Text>
+            <TouchableOpacity style={styles.checkoutBtn} onPress={() => alert('Order Placed!')}>
+              <Text style={styles.checkoutText}>Checkout</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  listContent: {
-    padding: 16,
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-  },
-  summaryCard: {
-    padding: 16,
-    borderTopWidth: 1,
-    elevation: 4,
-  },
-  promoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  promoSuccess: {
-    fontSize: 12,
-    marginTop: 4,
-    fontWeight: '600',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: 12,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  totalLabel: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  totalPrice: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { fontSize: 18, color: '#888' },
+  cartCard: { flexDirection: 'row', justifyContent: 'space-between', padding: 12, marginBottom: 10, borderWidth: 1, borderColor: '#eee', borderRadius: 8 },
+  details: { flex: 1 },
+  name: { fontSize: 16, fontWeight: 'bold' },
+  price: { color: '#e63946', marginTop: 4 },
+  qtyContainer: { flexDirection: 'row', alignItems: 'center' },
+  qtyBtn: { backgroundColor: '#ddd', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 4 },
+  qtyBtnText: { fontSize: 16, fontWeight: 'bold' },
+  qtyText: { marginHorizontal: 10, fontSize: 16 },
+  footer: { borderTopWidth: 1, borderTopColor: '#eee', paddingTop: 16, marginTop: 10 },
+  totalText: { fontSize: 20, fontWeight: 'bold', marginBottom: 10 },
+  checkoutBtn: { backgroundColor: '#e63946', padding: 14, borderRadius: 8, alignItems: 'center' },
+  checkoutText: { color: '#fff', fontSize: 16, fontWeight: 'bold' }
 });
+
+// Primary Requirement:
+
+// File ke bilkul bottom par:
+export default CartScreen;

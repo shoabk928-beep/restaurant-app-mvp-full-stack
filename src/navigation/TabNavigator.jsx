@@ -1,54 +1,41 @@
-import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
+import { Text } from 'react-native';
 
+// Import your screens here...
 import { HomeScreen } from '../screens/HomeScreen';
 import { ReservationScreen } from '../screens/ReservationScreen';
-import { CartScreen } from '../screens/CartScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
 export const TabNavigator = () => {
-  const { theme } = useTheme();
-  const { cart } = useCart();
-
-  const totalCartItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: theme.cardBackground },
-        headerTintColor: theme.text,
-        tabBarStyle: { backgroundColor: theme.cardBackground, borderTopColor: theme.border },
-        tabBarActiveTintColor: theme.primary,
-        tabBarInactiveTintColor: theme.subText,
-      }}
+      screenOptions={({ route }) => ({
+        headerShown: true,
+        tabBarActiveTintColor: '#E63946',
+        tabBarInactiveTintColor: '#8D99AE',
+        tabBarStyle: {
+          height: 60,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarIcon: ({ focused }) => {
+          let icon = '🍔';
+          if (route.name === 'Book Table' || route.name === 'Reservation') icon = '📅';
+          else if (route.name === 'Cart') icon = '🛒';
+          else if (route.name === 'Profile') icon = '👤';
+
+          return (
+            <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>
+              {icon}
+            </Text>
+          );
+        },
+      })}
     >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{ title: 'Menu' }}
-      />
-      <Tab.Screen
-        name="ReservationTab"
-        component={ReservationScreen}
-        options={{ title: 'Book Table' }}
-      />
-      <Tab.Screen
-        name="CartTab"
-        component={CartScreen}
-        options={{
-          title: 'Cart',
-          tabBarBadge: totalCartItems > 0 ? totalCartItems : null,
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{ title: 'Profile' }}
-      />
+      <Tab.Screen name="Menu" component={HomeScreen} />
+      <Tab.Screen name="Book Table" component={ReservationScreen} />
+      {/* baki screens agar hain to woh yahan hongi */}
     </Tab.Navigator>
   );
 };

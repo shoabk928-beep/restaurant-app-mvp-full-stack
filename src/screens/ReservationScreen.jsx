@@ -1,64 +1,41 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  View,
-  Text,
+  Alert,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
-  Alert,
+  View,
 } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
-import { useReservation } from '../hooks/useReservation';
-import { TIME_SLOTS } from '../data/tables';
-import { Input } from '../components/Input';
 import { Button } from '../components/Button';
+import { Input } from '../components/Input';
+import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+
+// Mock Time Slots & Tables Fallback
+const TIME_SLOTS = ['12:00 PM', '01:00 PM', '07:00 PM', '08:00 PM', '09:00 PM'];
 
 export const ReservationScreen = ({ navigation }) => {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const { getAvailableTables, createReservation } = useReservation();
 
-  const today = new Date().toISOString().split('T')[0];
-
-  const [date, setDate] = useState(today);
-  const [selectedSlot, setSelectedSlot] = useState(TIME_SLOTS[0]);
+  // Safe State Initialization
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedSlot, setSelectedSlot] = useState(TIME_SLOTS[0] || '');
   const [partySize, setPartySize] = useState('2');
   const [customerName, setCustomerName] = useState(user?.name || '');
-  const [phone, setPhone] = useState('');
-  const [selectedTableId, setSelectedTableId] = useState(null);
+  const [phone, setPhone] = useState(user?.phone || '');
 
-  const availableTables = getAvailableTables(
-    date,
-    selectedSlot,
-    parseInt(partySize, 10) || 1
-  );
-
-  const handleBookTable = () => {
+  const handleBooking = () => {
     if (!customerName.trim() || !phone.trim()) {
-      Alert.alert('Validation Error', 'Please enter your name and phone number.');
+      Alert.alert('Error', 'Please fill in all details.');
       return;
     }
-
-    if (!selectedTableId) {
-      Alert.alert('Selection Error', 'Please select an available table.');
-      return;
-    }
-
-    const res = createReservation({
-      userId: user?.id || 'guest',
-      customerName,
-      phone,
-      date,
-      timeSlot: selectedSlot,
-      partySize: parseInt(partySize, 10),
-      tableId: selectedTableId,
-    });
 
     Alert.alert(
-      'Reservation Confirmed! 🎉',
-      `Booking ID: ${res.id}\nDate: ${date}\nTime: ${selectedSlot}\nGuests: ${partySize}`,
-      [{ text: 'OK', onPress: () => setSelectedTableId(null) }]
+      'Reservation Confirmed!',
+      `Table reserved for ${partySize} person(s) on ${date} at ${selectedSlot}.`,
+      [{ text: 'OK', onPress: () => navigation?.navigate('Home') }]
     );
   };
 
@@ -66,78 +43,53 @@ export const ReservationScreen = ({ navigation }) => {
     <ScrollView
       contentContainerStyle={[
         styles.container,
-        { backgroundColor: theme.background },
+        { backgroundColor: theme?.background || '#F8F9FA' },
       ]}
     >
-      <Text style={[styles.title, { color: theme.text }]}>Book a Table</Text>
+      <Text style={[styles.title, { color: theme?.primary || '#E63946' }]}>
+        Book a Table
+      </Text>
 
-      {/* Guest Details */}
+      {/* Date Input */}
       <Input
-        label="Name"
-        placeholder="Enter your name"
-        value={customerName}
-        onChangeText={setCustomerName}
+        label="Date"
+        value={date}
+        onChangeText={setDate}
+        placeholder="YYYY-MM-DD"
       />
 
+      {/* Party Size Input */}
       <Input
-        label="Phone Number"
-        placeholder="e.g. +1 234 567 8900"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
+        label="Number of Guests"
+        value={partySize}
+        onChangeText={setPartySize}
+        keyboardType="numeric"
+        placeholder="2"
       />
 
-      {/* Date & Party Size */}
-      <View style={styles.row}>
-        <View style={{ flex: 1, marginRight: 8 }}>
-          <Input
-            label="Date (YYYY-MM-DD)"
-            placeholder="YYYY-MM-DD"
-            value={date}
-            onChangeText={setDate}
-          />
-        </View>
-
-        <View style={{ flex: 1, marginLeft: 8 }}>
-          <Input
-            label="Party Size"
-            placeholder="No. of guests"
-            value={partySize}
-            onChangeText={setPartySize}
-            keyboardType="number-pad"
-          />
-        </View>
-      </View>
-
-      {/* Time Slot Picker */}
-      <Text style={[styles.label, { color: theme.text }]}>Select Time Slot</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.slotScrollView}
-      >
+      {/* Time Slots */}
+      <Text style={[styles.label, { color: theme?.text || '#212529' }]}>
+        Select Time Slot
+      </Text>
+      <View style={styles.slotsContainer}>
         {TIME_SLOTS.map((slot) => {
           const isSelected = selectedSlot === slot;
           return (
             <TouchableOpacity
               key={slot}
-              onPress={() => {
-                setSelectedSlot(slot);
-                setSelectedTableId(null);
-              }}
               style={[
                 styles.slotChip,
                 {
                   backgroundColor: isSelected
-                    ? theme.primary
-                    : theme.cardBackground,
-                  borderColor: isSelected ? theme.primary : theme.border,
+                    ? theme?.primary || '#E63946'
+                    : theme?.cardBackground || '#FFFFFF',
                 },
               ]}
+              onPress={() => setSelectedSlot(slot)}
             >
               <Text
                 style={{
-                  color: isSelected ? '#FFFFFF' : theme.text,
+                  color: isSelected ? '#FFFFFF' : theme?.text || '#212529',
                   fontWeight: '600',
                 }}
               >
@@ -146,70 +98,28 @@ export const ReservationScreen = ({ navigation }) => {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
 
-      {/* Available Tables */}
-      <Text style={[styles.label, { color: theme.text, marginTop: 16 }]}>
-        Available Tables ({availableTables.length})
-      </Text>
+      {/* Contact Details */}
+      <Input
+        label="Your Name"
+        value={customerName}
+        onChangeText={setCustomerName}
+        placeholder="Enter your name"
+      />
 
-      {availableTables.length === 0 ? (
-        <Text style={[styles.noTableText, { color: theme.subText }]}>
-          No tables available for selected capacity/time slot. Try changing party size or time.
-        </Text>
-      ) : (
-        <View style={styles.tablesGrid}>
-          {availableTables.map((table) => {
-            const isSelected = selectedTableId === table.id;
-            return (
-              <TouchableOpacity
-                key={table.id}
-                onPress={() => setSelectedTableId(table.id)}
-                style={[
-                  styles.tableCard,
-                  {
-                    backgroundColor: isSelected
-                      ? theme.primary
-                      : theme.cardBackground,
-                    borderColor: isSelected ? theme.primary : theme.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.tableName,
-                    { color: isSelected ? '#FFFFFF' : theme.text },
-                  ]}
-                >
-                  Table {table.tableNumber}
-                </Text>
-                <Text
-                  style={[
-                    styles.tableCapacity,
-                    { color: isSelected ? '#F0F0F0' : theme.subText },
-                  ]}
-                >
-                  Capacity: {table.capacity}
-                </Text>
-                <Text
-                  style={[
-                    styles.tableLocation,
-                    { color: isSelected ? '#F0F0F0' : theme.subText },
-                  ]}
-                >
-                  {table.location}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      )}
+      <Input
+        label="Phone Number"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        placeholder="Enter phone number"
+      />
 
       <Button
-        title="Reserve Table"
-        onPress={handleBookTable}
-        disabled={!selectedTableId}
-        style={{ marginTop: 24 }}
+        title="Confirm Reservation"
+        onPress={handleBooking}
+        style={{ marginTop: 20 }}
       />
     </ScrollView>
   );
@@ -221,54 +131,28 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   title: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
+    marginBottom: 20,
   },
   label: {
     fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+    fontWeight: 'bold',
+    marginVertical: 8,
   },
-  slotScrollView: {
-    marginBottom: 10,
-  },
-  slotChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginRight: 8,
-  },
-  noTableText: {
-    fontSize: 14,
-    marginVertical: 12,
-  },
-  tablesGrid: {
+  slotsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    marginBottom: 16,
   },
-  tableCard: {
-    width: '48%',
-    padding: 12,
+  slotChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  tableName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  tableCapacity: {
-    fontSize: 12,
-    marginTop: 4,
-  },
-  tableLocation: {
-    fontSize: 12,
-    marginTop: 2,
+    marginRight: 8,
+    marginBottom: 8,
+    elevation: 1,
   },
 });
+// File ke bilkul bottom par:
+export default ReservationScreen;
