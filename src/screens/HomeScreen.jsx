@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { apiClient } from '../api/client';
 import { CartContext } from '../context/CartContext';
 
 export default function HomeScreen({ navigation }) {
@@ -32,8 +33,8 @@ export default function HomeScreen({ navigation }) {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('http://192.168.0.138:5000/api/menu');
-      const data = await response.json();
+      const data = await apiClient('/menu');
+
       setItems(data);
       setFilteredItems(data);
     } catch (error) {
@@ -172,7 +173,10 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 16
+    paddingHorizontal: 16,
+
+
+
   },
   headerButtons: {
     flexDirection: 'row',
@@ -222,6 +226,9 @@ const styles = StyleSheet.create({
   categoryBadge: {
     backgroundColor: '#f1f3f5',
     paddingHorizontal: 16,
+
+
+
     paddingVertical: 8,
     borderRadius: 20,
     marginRight: 10,

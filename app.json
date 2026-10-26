@@ -7,12 +7,25 @@
     "icon": "./assets/images/icon.png",
     "scheme": "restaurantappmvp",
     "userInterfaceStyle": "automatic",
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/images/favicon.png"
+    },
     "plugins": [
       "expo-splash-screen",
       "expo-status-bar"
     ],
     "experiments": {
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "cc80a353-57d0-4a31-83f4-3743be8533d8"
+      }
+    },
+    "owner": "shuaib_khan",
+    "android": {
+      "package": "com.shuaib.app"
     }
   }
 }

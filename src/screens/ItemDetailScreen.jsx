@@ -1,16 +1,16 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  ScrollView,
   Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from 'react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useCart } from '../context/CartContext';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
+import { useCart } from '../context/CartContext';
+import { useTheme } from '../context/ThemeContext';
 
 export const ItemDetailScreen = ({ route, navigation }) => {
   const { menuItem } = route.params;

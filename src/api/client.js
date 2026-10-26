@@ -1,7 +1,19 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-// Apne laptop ka IP Address yahan update karein (e.g., http://192.168.X.X:5000/api)
-export const BASE_URL = 'http://192.168.0.138:5000/api';
+// Dynamic Base URL for Web and Mobile
+const getBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.location?.hostname) {
+      return `http://${window.location.hostname}:5000/api`;
+    }
+    return 'http://localhost:5000/api';
+  }
+  // Mobile devices use local network IP
+  return 'http://192.168.0.135:5000/api';
+};
+
+export const BASE_URL = getBaseUrl();
 
 export const apiClient = async (endpoint, method = 'GET', body = null) => {
   try {
