@@ -13,7 +13,15 @@
     },
     "plugins": [
       "expo-splash-screen",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true
@@ -25,7 +33,8 @@
     },
     "owner": "shuaib_khan",
     "android": {
-      "package": "com.shuaib.app"
+      "package": "com.shuaib.app",
+      "usesCleartextTraffic": true
     }
   }
 }
